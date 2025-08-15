@@ -18,7 +18,7 @@ input[type="file"]{display:none}
 .log{font-size:14px;margin-top:12px;color:#334155;white-space:pre-wrap}
 .chat-area{display:flex;flex-direction:column;height:540px}
 .messages{flex:1;overflow-y:auto;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:10px;padding:10px;margin-bottom:10px}
-.msg{padding:10px;border-radius:10px;margin-bottom:8px;max-width:85%}
+.msg{padding:10px;border-radius:10px;margin-bottom:8px;max-width:85%;white-space:pre-wrap}
 .bot{background:#e2e8f0}
 .user{background:#1976d2;color:#fff;margin-left:auto}
 .input-row{display:flex;gap:8px}
@@ -56,71 +56,70 @@ input[type="file"]{display:none}
 </div>
 
 <script>
-const fileInput = document.getElementById('file');
-const uploadBtn = document.getElementById('uploadBtn');
-const uploadLog = document.getElementById('uploadLog');
-const messagesDiv = document.getElementById('messages');
-const questionInput = document.getElementById('question');
-const askBtn = document.getElementById('askBtn');
+const fileInput=document.getElementById('file');
+const uploadBtn=document.getElementById('uploadBtn');
+const uploadLog=document.getElementById('uploadLog');
+const messagesDiv=document.getElementById('messages');
+const questionInput=document.getElementById('question');
+const askBtn=document.getElementById('askBtn');
 
-function addMsg(text, who='bot'){
-  const div = document.createElement('div');
-  div.className = 'msg ' + (who==='bot' ? 'bot' : 'user');
-  div.textContent = text;
+function addMsg(text,who='bot'){
+  const div=document.createElement('div');
+  div.className='msg '+(who==='bot'?'bot':'user');
+  div.textContent=text;
   messagesDiv.appendChild(div);
-  messagesDiv.scrollTop = messagesDiv.scrollHeight;
+  messagesDiv.scrollTop=messagesDiv.scrollHeight;
 }
 
-uploadBtn.addEventListener('click', async () => {
-  if (!fileInput.files.length){
-    uploadLog.textContent = "Please choose a file first.";
-    uploadLog.style.display = "block";
+uploadBtn.addEventListener('click',async()=>{
+  if(!fileInput.files.length){
+    uploadLog.textContent="Please choose a file first.";
+    uploadLog.style.display="block";
     return;
   }
-  const fd = new FormData();
-  fd.append('file', fileInput.files[0]);
-  uploadLog.textContent = "Uploading...";
-  uploadLog.style.display = "block";
-  try {
-    const res = await fetch('/upload', {method:'POST', body:fd});
-    const data = await res.json();
-    if (data.invoice){
-      const i = data.invoice;
-      uploadLog.textContent = `Invoice '${i.file_name}' uploaded successfully! Vendor: ${i.vendor}, Total: ${i.total} ${i.currency}, Due: ${i.due_date}.`;
-    } else {
-      uploadLog.textContent = "Upload failed: "+(data.error||"unknown error");
+  const fd=new FormData();
+  fd.append('file',fileInput.files[0]);
+  uploadLog.textContent="Uploading...";
+  uploadLog.style.display="block";
+  try{
+    const res=await fetch('/upload',{method:'POST',body:fd});
+    const data=await res.json();
+    if(data.ok && data.invoice){
+      uploadLog.textContent=data.message;
+    }else{
+      uploadLog.textContent="Upload failed: "+(data.error||"unknown error");
     }
-  } catch(e){
-    uploadLog.textContent = "Upload error: " + e.message;
+  }catch(e){
+    uploadLog.textContent="Upload error: "+e.message;
   }
 });
 
-askBtn.addEventListener('click', async () => {
-  const q = questionInput.value.trim();
-  if(!q) return;
+askBtn.addEventListener('click',async()=>{
+  const q=questionInput.value.trim();
+  if(!q)return;
   addMsg(q,'user');
-  questionInput.value = "";
-  const typing = document.createElement('div');
-  typing.className = 'msg bot';
-  typing.textContent = "Thinking…";
+  questionInput.value="";
+  const typing=document.createElement('div');
+  typing.className='msg bot';
+  typing.textContent="Thinking…";
   messagesDiv.appendChild(typing);
-  messagesDiv.scrollTop = messagesDiv.scrollHeight;
-  try {
-    const res = await fetch('/ask', {
+  messagesDiv.scrollTop=messagesDiv.scrollHeight;
+  try{
+    const res=await fetch('/ask',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({question:q})
+      body:JSON.stringify({question:q})
     });
-    const data = await res.json();
+    const data=await res.json();
     typing.remove();
     addMsg(data.answer||"No answer returned.");
-  } catch(e){
+  }catch(e){
     typing.remove();
-    addMsg("Request failed: " + e.message);
+    addMsg("Request failed: "+e.message);
   }
 });
 
-questionInput.addEventListener('keydown', (e) => {
+questionInput.addEventListener('keydown',(e)=>{
   if(e.key==='Enter') askBtn.click();
 });
 </script>
