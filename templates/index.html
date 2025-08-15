@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!DOCTYPE html> 
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -77,10 +77,10 @@ uploadBtn.addEventListener('click',async()=>{
     uploadLog.style.display="block";
     return;
   }
-  const fd=new FormData();
-  fd.append('file',fileInput.files[0]);
   uploadLog.textContent="Uploading...";
   uploadLog.style.display="block";
+  const fd=new FormData();
+  fd.append('file',fileInput.files[0]);
   try{
     const res=await fetch('/upload',{method:'POST',body:fd});
     const data=await res.json();
