@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SMB Ops Copilot</title>
+<style>
+body{font-family:Arial,sans-serif;background:#f5f7fa;display:flex;justify-content:center;align-items:center;min-height:100vh;margin:0;padding:24px}
+.container{width:950px;max-width:100%;display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.card{background:#fff;border-radius:14px;padding:18px;box-shadow:0 6px 20px rgba(0,0,0,0.08)}
+h2{margin:0 0 12px 0;color:#1976d2}
+.upload-box{border:2px dashed #cbd5e1;border-radius:10px;padding:14px;text-align:center}
+.upload-row{display:flex;gap:8px;justify-content:center;margin-top:10px}
+input[type="file"]{display:none}
+.file-label{background:#f8fafc;border:1px solid #cbd5e1;padding:10px 14px;border-radius:10px;cursor:pointer;font-size:14px}
+.btn{background:#1976d2;color:#fff;border:none;padding:10px 16px;border-radius:10px;cursor:pointer;font-weight:600}
+.btn:hover{background:#125ca1}
+.log{font-size:14px;margin-top:12px;color:#334155;white-space:pre-wrap}
+.chat-area{display:flex;flex-direction:column;height:540px}
+.messages{flex:1;overflow-y:auto;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:10px;padding:10px;margin-bottom:10px}
+.msg{padding:10px;border-radius:10px;margin-bottom:8px;max-width:85%}
+.bot{background:#e2e8f0}
+.user{background:#1976d2;color:#fff;margin-left:auto}
+.input-row{display:flex;gap:8px}
+.input-row input[type="text"]{flex:1;padding:12px;border-radius:10px;border:1px solid #cbd5e1}
+.small{color:#64748b;font-size:12px;margin-top:6px}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="card">
+    <h2>SMB Ops Copilot</h2>
+    <div class="upload-box">
+      <div><strong>Upload Invoice</strong></div>
+      <div class="upload-row">
+        <label class="file-label" for="file">📄 Choose file</label>
+        <input id="file" type="file">
+        <button class="btn" id="uploadBtn">Upload</button>
+      </div>
+      <div class="log" id="uploadLog">No invoice uploaded yet.</div>
+      <div class="small">Tip: after upload, try “Show invoices due this week” or “Top vendor”.</div>
+    </div>
+  </div>
+  <div class="card chat-area">
+    <h2>Ask the Copilot</h2>
+    <div class="messages" id="messages">
+      <div class="msg bot">Hi! I can summarize invoices, show what’s due, and more. How can I help?</div>
+    </div>
+    <div class="input-row">
+      <input id="question" type="text" placeholder="e.g., Show invoices due this week">
+      <button class="btn" id="askBtn">Ask</button>
+    </div>
+    <div class="small">Try: “top vendor”, “invoice summary”, or any finance question.</div>
+  </div>
+</div>
+
+<div class="log" id="uploadLog">No invoice uploaded yet.</div>
+
+<script>
+const fileInput=document.getElementById('file');
+const uploadBtn=document.getElementById('uploadBtn');
+const uploadLog=document.getElementById('uploadLog');
+const messagesDiv=document.getElementById('messages');
+const questionInput=document.getElementById('question');
+const askBtn=document.getElementById('askBtn');
+
+function addMsg(text,who='bot'){
+  const div=document.createElement('div');
+  div.className='msg '+(who==='bot'?'bot':'user');
+  div.textContent=text;
+  messagesDiv.appendChild(div);
+  messagesDiv.scrollTop=messagesDiv.scrollHeight;
+}
+
+uploadBtn.addEventListener('click',async()=>{
+  if(!fileInput.files.length){
+    uploadLog.textContent="Please choose a file first.";
+    return;
+  }
+  const fd=new FormData();
+  fd.append('file',fileInput.files[0]);
+  uploadLog.textContent="Uploading...";
+  try{
+    const res=await fetch('/upload',{method:'POST',body:fd});
+    const data=await res.json();
+    if(data.invoice){
+      const i=data.invoice;
+      // Only show one message, remove duplication
+      uploadLog.textContent=`Invoice '${i.file_name}' uploaded successfully! Vendor: ${i.vendor}, Total: ${i.total} ${i.currency}, Due: ${i.due_date}.`;
+    } else {
+      uploadLog.textContent="Upload failed: "+(data.error||"unknown error");
+    }
+  } catch(e){
+    uploadLog.textContent="Upload error: "+e.message;
+  }
+});
+
+askBtn.addEventListener('click',async()=>{
+  const q=questionInput.value.trim(); 
+  if(!q)return;
+  addMsg(q,'user'); 
+  questionInput.value="";
+  const typing=document.createElement('div'); 
+  typing.className='msg bot'; 
+  typing.textContent="Thinking…";
+  messagesDiv.appendChild(typing); 
+  messagesDiv.scrollTop=messagesDiv.scrollHeight;
+  try{
+    const res=await fetch('/ask',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({question:q})
+    });
+    const data=await res.json();
+    typing.remove(); 
+    addMsg(data.answer||"No answer returned.");
+  }catch(e){
+    typing.remove(); 
+    addMsg("Request failed: "+e.message);
+  }
+});
+
+questionInput.addEventListener('keydown',(e)=>{
+  if(e.key==='Enter') askBtn.click();
+});
+</script>
+
+</body>
+</html>
