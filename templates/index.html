@@ -37,7 +37,8 @@ input[type="file"]{display:none}
         <input id="file" type="file">
         <button class="btn" id="uploadBtn">Upload</button>
       </div>
-      <div class="log" id="uploadLog">No invoice uploaded yet.</div>
+      <div class="log" id="uploadLog" style="display:none;"></div>
+
       <div class="small">Tip: after upload, try “Show invoices due this week” or “Top vendor”.</div>
     </div>
   </div>
@@ -53,8 +54,6 @@ input[type="file"]{display:none}
     <div class="small">Try: “top vendor”, “invoice summary”, or any finance question.</div>
   </div>
 </div>
-
-<div class="log" id="uploadLog">No invoice uploaded yet.</div>
 
 <script>
 const fileInput=document.getElementById('file');
@@ -75,17 +74,18 @@ function addMsg(text,who='bot'){
 uploadBtn.addEventListener('click',async()=>{
   if(!fileInput.files.length){
     uploadLog.textContent="Please choose a file first.";
+    uploadLog.style.display="block";
     return;
   }
   const fd=new FormData();
   fd.append('file',fileInput.files[0]);
   uploadLog.textContent="Uploading...";
+  uploadLog.style.display="block";
   try{
     const res=await fetch('/upload',{method:'POST',body:fd});
     const data=await res.json();
     if(data.invoice){
       const i=data.invoice;
-      // Only show one message, remove duplication
       uploadLog.textContent=`Invoice '${i.file_name}' uploaded successfully! Vendor: ${i.vendor}, Total: ${i.total} ${i.currency}, Due: ${i.due_date}.`;
     } else {
       uploadLog.textContent="Upload failed: "+(data.error||"unknown error");
