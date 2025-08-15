@@ -1,5 +1,8 @@
-fastapi
-uvicorn
-jinja2
-python-multipart
+fastapi==0.111.1
+uvicorn==0.23.2
+jinja2==3.1.2
+python-multipart>=0.0.7
 aiofiles
+httpx
+Flask==2.3.3
+requests
